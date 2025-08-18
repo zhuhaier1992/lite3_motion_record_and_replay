@@ -3,12 +3,14 @@
 #include <time.h>
 #include <string.h>
 #include "Eigen/Dense"
+#include <vector>
 using namespace std;
 using namespace Eigen;
 
 typedef Matrix< double, 3, 1> Vec3;
 
 const double kDegree2Radian = 3.1415926 / 180;
+
 
 class MotionExample{
   private:
@@ -54,5 +56,10 @@ class MotionExample{
     /// @param data Current joint data
     /// @param time Current timestamp
     void GetInitData(LegData data, double time);
+    Vec3 SplitVec3(const string &s, char delimiter);
+    vector<string> Split(const string &s, char delimiter);
+    void SaveTraj(LegData data, double time);
+    void Replicate(RobotCmd &cmd, double time, string line, RobotData &data_state);
+    void FixJoint(RobotCmd &cmd, vector<int> joint_num,RobotData &data_state);
 };
 

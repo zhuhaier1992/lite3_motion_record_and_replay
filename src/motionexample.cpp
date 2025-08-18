@@ -6,10 +6,12 @@
 /// @copyright Copyright (c) 2023
 
 #include "motionexample.h"
+#include <fstream>
 
 Vec3 goal_angle_fl, goal_angle_hl, goal_angle_fr, goal_angle_hr;
 Vec3 init_angle_fl, init_angle_fr, init_angle_hl, init_angle_hr;
 double init_time;
+// int sample_intervs;
 
 /// @brief Spend 1 s putting the robot's legs away and preparing to stand
 /// @param cmd Issue control command
@@ -39,6 +41,63 @@ void MotionExample::PreStandUp(RobotCmd &cmd, double time,RobotData &data_state)
   }
 }
 
+
+void MotionExample::Replicate(RobotCmd &cmd, double time, string line, RobotData &data_state){
+  double cycle_time = 0.001;
+  double sample_intervs=0.02;
+  vector<string> cg=Split(line, ',');
+  // cout<<"split: "<<cg[0]<<endl;itDa
+  goal_angle_fl=SplitVec3(cg[0], ' ');
+  goal_angle_fr=SplitVec3(cg[1], ' ');
+  goal_angle_hl=SplitVec3(cg[2], ' ');
+  goal_angle_hr=SplitVec3(cg[3], ' ');
+  // cout<<"goal_angle_fl"<<goal_angle_fl<<endl;
+  // cout<<"enter:"<<time<<";"<<init_time<<";"<<sample_intervs<<endl;
+  if (time<=init_time+sample_intervs){
+    
+    SwingToAngle(init_angle_fl, goal_angle_fl, sample_intervs, time - init_time,
+                cycle_time, "FL", cmd, data_state);
+    SwingToAngle(init_angle_fr, goal_angle_fr, sample_intervs, time - init_time,
+                cycle_time, "FR", cmd,data_state);
+    SwingToAngle(init_angle_hl, goal_angle_hl, sample_intervs, time - init_time,
+                cycle_time, "HL", cmd,data_state);
+    SwingToAngle(init_angle_hr, goal_angle_hr, sample_intervs, time - init_time,
+                cycle_time, "HR", cmd,data_state);
+    // cout<<"swing finished"<<endl;
+  }else{
+    cout<<"enter pd:"<<time<<";"<<init_time<<";"<<sample_intervs<<endl;
+    for (int i = 0; i < 12; i++) {
+      cmd.joint_cmd[i].torque = 0;
+      cmd.joint_cmd[i].kp = 80;
+      cmd.joint_cmd[i].kd = 0.7;
+    }
+    cmd.joint_cmd[0].position = goal_angle_fl[0];
+    cmd.joint_cmd[1].position = goal_angle_fl[1];
+    cmd.joint_cmd[2].position = goal_angle_fl[2];
+    cmd.joint_cmd[0].velocity = 0;
+    cmd.joint_cmd[1].velocity = 0;
+    cmd.joint_cmd[2].velocity = 0;
+    cmd.joint_cmd[3].position = goal_angle_fr[0];
+    cmd.joint_cmd[4].position = goal_angle_fr[1];
+    cmd.joint_cmd[5].position = goal_angle_fr[2];
+    cmd.joint_cmd[3].velocity = 0;
+    cmd.joint_cmd[4].velocity = 0;
+    cmd.joint_cmd[5].velocity = 0;
+    cmd.joint_cmd[6].position = goal_angle_hl[0];
+    cmd.joint_cmd[7].position = goal_angle_hl[1];
+    cmd.joint_cmd[8].position = goal_angle_hl[2];
+    cmd.joint_cmd[6].velocity = 0;
+    cmd.joint_cmd[7].velocity = 0;
+    cmd.joint_cmd[8].velocity = 0;
+    cmd.joint_cmd[9].position = goal_angle_hr[0];
+    cmd.joint_cmd[10].position = goal_angle_hr[1];
+    cmd.joint_cmd[11].position = goal_angle_hr[2];
+    cmd.joint_cmd[9].velocity = 0;
+    cmd.joint_cmd[10].velocity = 0;
+    cmd.joint_cmd[11].velocity = 0;
+  }
+}
+
 /// @brief Spend 1.5s standing
 /// @param cmd Issue control command
 /// @param time Current timestamp
@@ -46,7 +105,7 @@ void MotionExample::PreStandUp(RobotCmd &cmd, double time,RobotData &data_state)
 void MotionExample::StandUp(RobotCmd &cmd, double time,RobotData &data_state) {
   double standup_time = 1.5;
   double cycle_time = 0.001;
-    goal_angle_fl << 0 * kDegree2Radian, -42 * kDegree2Radian,
+  goal_angle_fl << 0 * kDegree2Radian, -42 * kDegree2Radian,
       78 * kDegree2Radian;
   goal_angle_fr << 0 * kDegree2Radian, -42 * kDegree2Radian,
       78 * kDegree2Radian;
@@ -81,6 +140,16 @@ void MotionExample::StandUp(RobotCmd &cmd, double time,RobotData &data_state) {
   }
 }
 
+void MotionExample::FixJoint(RobotCmd &cmd, vector<int> joint_num,RobotData &data_state){
+  for (int i = 0; i < joint_num.size(); i++) {
+    cmd.joint_cmd[joint_num[i]].position=data_state.joint_data.joint_data[i].position;
+    cmd.joint_cmd[joint_num[i]].torque=1;
+    cmd.joint_cmd[joint_num[i]].kd=10;
+    cmd.joint_cmd[joint_num[i]].kp=10;
+    // cout<<"joint num:"<<joint_num[i]<<endl;
+  }
+}
+
 /// @brief Only the current moment and angle are recorded
 /// @param data Current joint data
 /// @param time Current timestamp
@@ -103,6 +172,36 @@ void MotionExample::GetInitData(LegData data, double time) {
   init_angle_hr[1] = data.hr_leg[1].position;
   init_angle_hr[2] = data.hr_leg[2].position;
 }
+
+void MotionExample::SaveTraj(LegData data, double time) {
+  init_time = time;
+  Vec3 angle_fl, angle_fr, angle_hl, angle_hr;
+  // Only the current moment and angle are recorded
+  angle_fl[0] = data.fl_leg[0].position;
+  angle_fl[1] = data.fl_leg[1].position;
+  angle_fl[2] = data.fl_leg[2].position;
+
+  angle_fr[0] = data.fr_leg[0].position;
+  angle_fr[1] = data.fr_leg[1].position;
+  angle_fr[2] = data.fr_leg[2].position;
+
+  angle_hl[0] = data.hl_leg[0].position;
+  angle_hl[1] = data.hl_leg[1].position;
+  angle_hl[2] = data.hl_leg[2].position;
+
+  angle_hr[0] = data.hr_leg[0].position;
+  angle_hr[1] = data.hr_leg[1].position;
+  angle_hr[2] = data.hr_leg[2].position;
+  ofstream outFile("../data.txt", ios::app);
+  if (!outFile.is_open()){
+    cerr<<"can't open file data.txt"<<endl;
+  }
+  outFile <<angle_fl[0]<<" "<<angle_fl[1]<<" "<<angle_fl[2]<<",";
+  outFile <<angle_fr[0]<<" "<<angle_fr[1]<<" "<<angle_fr[2]<<",";
+  outFile <<angle_hl[0]<<" "<<angle_hl[1]<<" "<<angle_hl[2]<<",";
+  outFile <<angle_hr[0]<<" "<<angle_hr[1]<<" "<<angle_hr[2]<<endl;
+}
+
 
 /// @brief Specifically achieve swinging one leg of the robot to a specified position within a specified time
 /// @param initial_angle 
@@ -229,4 +328,26 @@ void MotionExample::CubicSpline(double init_position, double init_velocity,
   sub_goal_position_next2 = a * pow(run_time + cycle_time * 2, 3) +
                        b * pow(run_time + cycle_time * 2, 2) +
                        c * (run_time + cycle_time * 2) + d;
+}
+
+vector<string> MotionExample::Split(const string &s, char delimiter){
+  vector<string> tokens;
+  string token;
+  istringstream tokenStream(s);
+  while (getline(tokenStream, token, delimiter)) {
+    tokens.push_back(token);
+  }
+  return tokens;
+}
+
+Vec3 MotionExample::SplitVec3(const string &s, char delimiter){
+  string token;
+  Vec3 v;
+  istringstream tokenStream(s);
+  int i=0;
+  while(getline(tokenStream, token, delimiter)){
+    v[i]=stod(token);
+    i++;
+  }
+  return v;
 }

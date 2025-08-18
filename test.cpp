@@ -15,6 +15,7 @@
 #include <iostream>
 #include <time.h>
 #include <string.h>
+#include <fstream>
 
 
 using namespace std;
@@ -44,38 +45,36 @@ int main(int argc, char* argv[]){
   RobotData *robot_data = &robot_data_recv->GetState();
 
   robot_data_recv->StartWork();
-  set_timer.TimeInit(1);
-  cout<<"start init"<<endl;                                                      ///< Timer initialization, input: cycle; Unit: ms
+  set_timer.TimeInit(1);                                                      ///< Timer initialization, input: cycle; Unit: ms
   send_cmd->RobotStateInit();                                                 ///< Return all joints to zero and gain control
-  cout<<"inited"<<endl;
+
   start_time = set_timer.GetCurrentTime();                                    ///< Obtain time for algorithm usage
   robot_set_up_demo.GetInitData(robot_data->joint_data,0.000);                ///< Obtain all joint states once before each stage (action)
-  
+  cout<<"init finished"<<endl;
+  // int sample_interv=100; //采样间隔20ms
+  // ifstream file("../data.txt");
+  // string line;
+  // if(!file.is_open()){
+  //   cerr<<"can't open file"<<endl;
+  //   exit(1);
+  // }
+  int test_count=0;
   int time_tick = 0;
   while(1){
     if (set_timer.TimerInterrupt() == true){                                  ///< Time interrupt flag
-      continue;
+        continue;
     }
-    now_time = set_timer.GetIntervalTime(start_time);                         ///< Get the current time
+    now_time = set_timer.GetIntervalTime(start_time);
     time_tick++;
-    if(time_tick < 1000){
-      robot_set_up_demo.PreStandUp(robot_joint_cmd,now_time,*robot_data);     ///< Stand up and prepare for action
-    } 
-    if(time_tick == 1000){
-      
-      robot_set_up_demo.GetInitData(robot_data->joint_data,now_time);         ///< Obtain all joint states once before each stage (action)
-    }
-    if(time_tick >= 1000 ){
-      robot_set_up_demo.StandUp(robot_joint_cmd,now_time,*robot_data);        ///< Full stand up
-    }
-    if(time_tick >= 10000){
-      send_cmd->ControlGet(ROBOT);                                            ///< Return the control right, input: ROBOT: Original algorithm control of the robot .  SDK: SDK control PS: over 50ms, no data set sent_ Send (cmd), you will lose control, you need to resend to obtain control
-      break;
-    }
+    robot_set_up_demo.GetInitData(robot_data->joint_data,now_time);///执行动作前给出初始关节位置
+    robot_set_up_demo.FixJoint(robot_joint_cmd, {0},*robot_data); ///给前左腿的1,2号关节施加力矩
     if(is_message_updated_){
       send_cmd->SendCmd(robot_joint_cmd);  
-    }               
-    //cout << robot_data->imu.acc_x << endl;
+    }
+    if (time_tick>5000){
+      break;
+    }
   }
+  send_cmd->ControlGet(ROBOT);
   return 0;
-} 
+}
