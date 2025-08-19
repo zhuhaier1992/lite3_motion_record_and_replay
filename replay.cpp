@@ -79,7 +79,7 @@ int main(int argc, char* argv[]){
   }
 
   int sample_interv=20; //采样间隔20ms
-  ifstream file("../data.txt");
+  ifstream file("./filtered_test.txt");
   string line;
   if(!file.is_open()){
     cerr<<"can't open file"<<endl;

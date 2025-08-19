@@ -149,39 +149,6 @@ void MotionExample::SaveTraj(LegData data, double time) {
   outFile <<angle_hr[0]<<" "<<angle_hr[1]<<" "<<angle_hr[2]<<endl;
 }
 
-vector<double> MotionExample::movingAverageFilter(const vector<double>& input, int window_size) {
-  vector<double> output;
-  if (input.empty() || window_size <= 0) {
-        return output; // 输入为空或窗口大小无效时返回空
-  }
-
-  // 确保窗口大小为奇数，避免中心偏移（可选处理）
-  window_size = (window_size % 2 == 0) ? window_size + 1 : window_size;
-  int half_window = window_size / 2;
-  int n = input.size();
-  output.reserve(n); // 预分配内存，提高效率
-
-  for (int i = 0; i < n; ++i) {
-      // 计算窗口的起始和结束索引（处理边界情况）
-      int start = std::max(0, i - half_window);
-      int end = std::min(n - 1, i + half_window); // 注意：C++中vector是0-based索引，end取闭区间
-      
-      // 计算窗口内的总和
-      double sum = 0;
-      int count = 0;
-      for (int j = start; j <= end; ++j) {
-          sum += input[j];
-          count++;
-      }
-      
-      // 计算平均值并加入结果
-      output.push_back(sum / count);
-  }
-  return output;
-}
-
-
-
 /// @brief Specifically achieve swinging one leg of the robot to a specified position within a specified time
 /// @param initial_angle 
 /// @param final_angle
@@ -330,6 +297,39 @@ void MotionExample::CubicSpline(double init_position, double init_velocity,
 //   }
 //   return v;
 // }
+
+
+
+vector<double> MotionExample::movingAverageFilter(const vector<double>& input, int window_size) {
+  vector<double> output;
+  if (input.empty() || window_size <= 0) {
+        return output; // 输入为空或窗口大小无效时返回空
+  }
+
+  // 确保窗口大小为奇数，避免中心偏移（可选处理）
+  window_size = (window_size % 2 == 0) ? window_size + 1 : window_size;
+  int half_window = window_size / 2;
+  int n = input.size();
+  output.reserve(n); // 预分配内存，提高效率
+
+  for (int i = 0; i < n; ++i) {
+      // 计算窗口的起始和结束索引（处理边界情况）
+      int start = std::max(0, i - half_window);
+      int end = std::min(n - 1, i + half_window); // 注意：C++中vector是0-based索引，end取闭区间
+      
+      // 计算窗口内的总和
+      double sum = 0;
+      int count = 0;
+      for (int j = start; j <= end; ++j) {
+          sum += input[j];
+          count++;
+      }
+      
+      // 计算平均值并加入结果
+      output.push_back(sum / count);
+  }
+  return output;
+}
 
 // 从文件读取关节数据（按行读取，每行12个关节值）
 bool MotionExample::readJointData(const std::string& filename, std::vector<std::vector<double>>& joints) {
