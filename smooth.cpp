@@ -26,7 +26,7 @@ MotionExample robot;
 int main(int argc, char* argv[]){
     const std::string input_filename = "../test.txt";    // 输入文件
     const std::string output_filename = "filtered_test.txt";  // 输出文件
-    const int window_size = 25;  // 滑动窗口大小（建议3-5）
+    const int window_size = 25; 
 
     // 存储关节数据：joints[关节序号][帧序号]
     std::vector<std::vector<double>> joints;

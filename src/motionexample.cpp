@@ -417,19 +417,19 @@ void MotionExample::Replay(RobotCmd &cmd, double time, string line, RobotData &d
   // cout<<"init_angle_fl"<<init_angle_fl<<endl;
   // cout<<"goal_angle_fl"<<goal_angle_fl<<endl;
   // cout<<"enter:"<<time<<";"<<init_time<<";"<<sample_intervs<<endl;
-  if (time<=init_time+sample_intervs){
+  // if (time<=init_time+sample_intervs){
     
-    SwingToAngle(init_angle_fl, goal_angle_fl, sample_intervs, time - init_time,
-                cycle_time, "FL", cmd, data_state);
-    SwingToAngle(init_angle_fr, goal_angle_fr, sample_intervs, time - init_time,
-                cycle_time, "FR", cmd,data_state);
-    SwingToAngle(init_angle_hl, goal_angle_hl, sample_intervs, time - init_time,
-                cycle_time, "HL", cmd,data_state);
-    SwingToAngle(init_angle_hr, goal_angle_hr, sample_intervs, time - init_time,
-                cycle_time, "HR", cmd,data_state);
-    // cout<<"swing finished"<<endl;
-  }else{
-    cout<<"enter pd:"<<time<<";"<<init_time<<";"<<sample_intervs<<endl;
+  //   SwingToAngle(init_angle_fl, goal_angle_fl, sample_intervs, time - init_time,
+  //               cycle_time, "FL", cmd, data_state);
+  //   SwingToAngle(init_angle_fr, goal_angle_fr, sample_intervs, time - init_time,
+  //               cycle_time, "FR", cmd,data_state);
+  //   SwingToAngle(init_angle_hl, goal_angle_hl, sample_intervs, time - init_time,
+  //               cycle_time, "HL", cmd,data_state);
+  //   SwingToAngle(init_angle_hr, goal_angle_hr, sample_intervs, time - init_time,
+  //               cycle_time, "HR", cmd,data_state);
+  //   // cout<<"swing finished"<<endl;
+  // }else{
+    // cout<<"enter pd:"<<time<<";"<<init_time<<";"<<sample_intervs<<endl;
     for (int i = 0; i < 12; i++) {
       cmd.joint_cmd[i].torque = 0;
       cmd.joint_cmd[i].kp = 80;
@@ -459,5 +459,5 @@ void MotionExample::Replay(RobotCmd &cmd, double time, string line, RobotData &d
     cmd.joint_cmd[9].velocity = 0;
     cmd.joint_cmd[10].velocity = 0;
     cmd.joint_cmd[11].velocity = 0;
-  }
+  // }
 }
