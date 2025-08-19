@@ -34,6 +34,7 @@ link_directories(
 add_executable(${PROJECT_NAME} "main.cpp"${SRC_LIST})
 add_executable("record" "record.cpp"${SRC_LIST})
 add_executable("replay" "replay.cpp"${SRC_LIST})
+add_executable("test_real" "test_real.cpp"${SRC_LIST})
 add_executable("test" "test.cpp"${SRC_LIST})
 # 链接动态库target_link_libraries(myprogram /path/to/lib/libfoo.so)
 
@@ -43,17 +44,19 @@ if (BUILD_PLATFORM STREQUAL arm)
   target_link_libraries(${PROJECT_NAME} libdeeprobotics_legged_sdk_aarch64.so)
   target_link_libraries("record" libdeeprobotics_legged_sdk_aarch64.so)
   target_link_libraries("replay" libdeeprobotics_legged_sdk_aarch64.so)
-  target_link_libraries("test" libdeeprobotics_legged_sdk_aarch64.so)
+  target_link_libraries("test_real" libdeeprobotics_legged_sdk_aarch64.so)
 else()
   target_link_libraries(${PROJECT_NAME} libdeeprobotics_legged_sdk_x86_64.so)
   target_link_libraries("record" libdeeprobotics_legged_sdk_x86_64.so)
   target_link_libraries("replay" libdeeprobotics_legged_sdk_x86_64.so)
+  target_link_libraries("test_real" libdeeprobotics_legged_sdk_x86_64.so)
   target_link_libraries("test" libdeeprobotics_legged_sdk_x86_64.so)  
 endif()
 
 target_link_libraries(${PROJECT_NAME} -lpthread -lm -lrt -ldl -lstdc++)
 target_link_libraries("record" -lpthread -lm -lrt -ldl -lstdc++)
 target_link_libraries("replay" -lpthread -lm -lrt -ldl -lstdc++)
+target_link_libraries("test_real" -lpthread -lm -lrt -ldl -lstdc++)
 target_link_libraries("test" -lpthread -lm -lrt -ldl -lstdc++)
 
 

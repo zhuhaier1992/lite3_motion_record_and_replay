@@ -7,6 +7,7 @@
 
 #include "motionexample.h"
 #include <fstream>
+#include <algorithm>
 
 Vec3 goal_angle_fl, goal_angle_hl, goal_angle_fr, goal_angle_hr;
 Vec3 init_angle_fl, init_angle_fr, init_angle_hl, init_angle_hr;
@@ -42,61 +43,7 @@ void MotionExample::PreStandUp(RobotCmd &cmd, double time,RobotData &data_state)
 }
 
 
-void MotionExample::Replicate(RobotCmd &cmd, double time, string line, RobotData &data_state){
-  double cycle_time = 0.001;
-  double sample_intervs=0.02;
-  vector<string> cg=Split(line, ',');
-  // cout<<"split: "<<cg[0]<<endl;itDa
-  goal_angle_fl=SplitVec3(cg[0], ' ');
-  goal_angle_fr=SplitVec3(cg[1], ' ');
-  goal_angle_hl=SplitVec3(cg[2], ' ');
-  goal_angle_hr=SplitVec3(cg[3], ' ');
-  // cout<<"goal_angle_fl"<<goal_angle_fl<<endl;
-  // cout<<"enter:"<<time<<";"<<init_time<<";"<<sample_intervs<<endl;
-  if (time<=init_time+sample_intervs){
-    
-    SwingToAngle(init_angle_fl, goal_angle_fl, sample_intervs, time - init_time,
-                cycle_time, "FL", cmd, data_state);
-    SwingToAngle(init_angle_fr, goal_angle_fr, sample_intervs, time - init_time,
-                cycle_time, "FR", cmd,data_state);
-    SwingToAngle(init_angle_hl, goal_angle_hl, sample_intervs, time - init_time,
-                cycle_time, "HL", cmd,data_state);
-    SwingToAngle(init_angle_hr, goal_angle_hr, sample_intervs, time - init_time,
-                cycle_time, "HR", cmd,data_state);
-    // cout<<"swing finished"<<endl;
-  }else{
-    cout<<"enter pd:"<<time<<";"<<init_time<<";"<<sample_intervs<<endl;
-    for (int i = 0; i < 12; i++) {
-      cmd.joint_cmd[i].torque = 0;
-      cmd.joint_cmd[i].kp = 80;
-      cmd.joint_cmd[i].kd = 0.7;
-    }
-    cmd.joint_cmd[0].position = goal_angle_fl[0];
-    cmd.joint_cmd[1].position = goal_angle_fl[1];
-    cmd.joint_cmd[2].position = goal_angle_fl[2];
-    cmd.joint_cmd[0].velocity = 0;
-    cmd.joint_cmd[1].velocity = 0;
-    cmd.joint_cmd[2].velocity = 0;
-    cmd.joint_cmd[3].position = goal_angle_fr[0];
-    cmd.joint_cmd[4].position = goal_angle_fr[1];
-    cmd.joint_cmd[5].position = goal_angle_fr[2];
-    cmd.joint_cmd[3].velocity = 0;
-    cmd.joint_cmd[4].velocity = 0;
-    cmd.joint_cmd[5].velocity = 0;
-    cmd.joint_cmd[6].position = goal_angle_hl[0];
-    cmd.joint_cmd[7].position = goal_angle_hl[1];
-    cmd.joint_cmd[8].position = goal_angle_hl[2];
-    cmd.joint_cmd[6].velocity = 0;
-    cmd.joint_cmd[7].velocity = 0;
-    cmd.joint_cmd[8].velocity = 0;
-    cmd.joint_cmd[9].position = goal_angle_hr[0];
-    cmd.joint_cmd[10].position = goal_angle_hr[1];
-    cmd.joint_cmd[11].position = goal_angle_hr[2];
-    cmd.joint_cmd[9].velocity = 0;
-    cmd.joint_cmd[10].velocity = 0;
-    cmd.joint_cmd[11].velocity = 0;
-  }
-}
+
 
 /// @brief Spend 1.5s standing
 /// @param cmd Issue control command
@@ -196,11 +143,43 @@ void MotionExample::SaveTraj(LegData data, double time) {
   if (!outFile.is_open()){
     cerr<<"can't open file data.txt"<<endl;
   }
-  outFile <<angle_fl[0]<<" "<<angle_fl[1]<<" "<<angle_fl[2]<<",";
-  outFile <<angle_fr[0]<<" "<<angle_fr[1]<<" "<<angle_fr[2]<<",";
-  outFile <<angle_hl[0]<<" "<<angle_hl[1]<<" "<<angle_hl[2]<<",";
+  outFile <<angle_fl[0]<<" "<<angle_fl[1]<<" "<<angle_fl[2]<<" ";
+  outFile <<angle_fr[0]<<" "<<angle_fr[1]<<" "<<angle_fr[2]<<" ";
+  outFile <<angle_hl[0]<<" "<<angle_hl[1]<<" "<<angle_hl[2]<<" ";
   outFile <<angle_hr[0]<<" "<<angle_hr[1]<<" "<<angle_hr[2]<<endl;
 }
+
+vector<double> MotionExample::movingAverageFilter(const vector<double>& input, int window_size) {
+  vector<double> output;
+  if (input.empty() || window_size <= 0) {
+        return output; // 输入为空或窗口大小无效时返回空
+  }
+
+  // 确保窗口大小为奇数，避免中心偏移（可选处理）
+  window_size = (window_size % 2 == 0) ? window_size + 1 : window_size;
+  int half_window = window_size / 2;
+  int n = input.size();
+  output.reserve(n); // 预分配内存，提高效率
+
+  for (int i = 0; i < n; ++i) {
+      // 计算窗口的起始和结束索引（处理边界情况）
+      int start = std::max(0, i - half_window);
+      int end = std::min(n - 1, i + half_window); // 注意：C++中vector是0-based索引，end取闭区间
+      
+      // 计算窗口内的总和
+      double sum = 0;
+      int count = 0;
+      for (int j = start; j <= end; ++j) {
+          sum += input[j];
+          count++;
+      }
+      
+      // 计算平均值并加入结果
+      output.push_back(sum / count);
+  }
+  return output;
+}
+
 
 
 /// @brief Specifically achieve swinging one leg of the robot to a specified position within a specified time
@@ -330,24 +309,155 @@ void MotionExample::CubicSpline(double init_position, double init_velocity,
                        c * (run_time + cycle_time * 2) + d;
 }
 
-vector<string> MotionExample::Split(const string &s, char delimiter){
-  vector<string> tokens;
-  string token;
-  istringstream tokenStream(s);
-  while (getline(tokenStream, token, delimiter)) {
-    tokens.push_back(token);
-  }
-  return tokens;
+// vector<string> MotionExample::Split(const string &s, char delimiter){
+//   vector<string> tokens;
+//   string token;
+//   istringstream tokenStream(s);
+//   while (getline(tokenStream, token, delimiter)) {
+//     tokens.push_back(token);
+//   }
+//   return tokens;
+// }
+
+// Vec3 MotionExample::SplitVec3(const string &s, char delimiter){
+//   string token;
+//   Vec3 v;
+//   istringstream tokenStream(s);
+//   int i=0;
+//   while(getline(tokenStream, token, delimiter)){
+//     v[i]=stod(token);
+//     i++;
+//   }
+//   return v;
+// }
+
+// 从文件读取关节数据（按行读取，每行12个关节值）
+bool MotionExample::readJointData(const std::string& filename, std::vector<std::vector<double>>& joints) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "无法打开文件: " << filename << std::endl;
+        return false;
+    }
+
+    std::string line;
+    // 每行对应一帧数据，解析后按关节序号存入列向量
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        double value;
+        int joint_idx = 0;
+        
+        // 解析一行中的12个关节值
+        while (iss >> value && joint_idx < 12) {
+            // 如果是新的关节，初始化向量
+            if (joint_idx >= joints.size()) {
+                joints.emplace_back();
+            }
+            joints[joint_idx].push_back(value);
+            joint_idx++;
+        }
+    }
+
+    file.close();
+    return true;
 }
 
-Vec3 MotionExample::SplitVec3(const string &s, char delimiter){
-  string token;
-  Vec3 v;
-  istringstream tokenStream(s);
-  int i=0;
-  while(getline(tokenStream, token, delimiter)){
-    v[i]=stod(token);
-    i++;
+// 将滤波后的关节数据写入文件（按行输出，保持原格式）
+bool MotionExample::writeFilteredData(const std::string& filename, const std::vector<std::vector<double>>& filtered_joints) {
+    // 检查所有关节的帧数是否一致
+    if (filtered_joints.empty()) {
+        std::cerr << "没有数据可写入" << std::endl;
+        return false;
+    }
+    int frame_count = filtered_joints[0].size();
+    for (const auto& joint : filtered_joints) {
+        if (joint.size() != frame_count) {
+            std::cerr << "关节数据帧数不一致，无法写入" << std::endl;
+            return false;
+        }
+    }
+
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "无法创建输出文件: " << filename << std::endl;
+        return false;
+    }
+
+    // 按帧写入，每帧一行，包含12个关节的滤波后值
+    for (int i = 0; i < frame_count; ++i) {
+        for (int j = 0; j < 12; ++j) {
+            // 控制输出精度为6位小数
+            file.precision(6);
+            file << filtered_joints[j][i];
+            if (j != 11) {
+                file << " ";  // 关节间用空格分隔
+            }
+        }
+        file << std::endl;  // 一帧结束换行
+    }
+
+    file.close();
+    return true;
+}
+void MotionExample::Replay(RobotCmd &cmd, double time, string line, RobotData &data_state){
+  double cycle_time = 0.001;
+  double sample_intervs=0.02;
+  vector<double> joint_angles;
+  istringstream iss(line);
+  double value;
+  // 解析当前行的12个关节数据
+  while (iss >> value) {
+      joint_angles.push_back(value);
+      // 只取前12个数据（防止一行数据过多）
+      if (joint_angles.size() >= 12) break;
   }
-  return v;
+  goal_angle_fl << joint_angles[0], joint_angles[1], joint_angles[2];
+  goal_angle_fr << joint_angles[3], joint_angles[4], joint_angles[5];
+  goal_angle_hl << joint_angles[6], joint_angles[7], joint_angles[8];
+  goal_angle_hr << joint_angles[9], joint_angles[10], joint_angles[11];
+  // cout<<"init_angle_fl"<<init_angle_fl<<endl;
+  // cout<<"goal_angle_fl"<<goal_angle_fl<<endl;
+  // cout<<"enter:"<<time<<";"<<init_time<<";"<<sample_intervs<<endl;
+  if (time<=init_time+sample_intervs){
+    
+    SwingToAngle(init_angle_fl, goal_angle_fl, sample_intervs, time - init_time,
+                cycle_time, "FL", cmd, data_state);
+    SwingToAngle(init_angle_fr, goal_angle_fr, sample_intervs, time - init_time,
+                cycle_time, "FR", cmd,data_state);
+    SwingToAngle(init_angle_hl, goal_angle_hl, sample_intervs, time - init_time,
+                cycle_time, "HL", cmd,data_state);
+    SwingToAngle(init_angle_hr, goal_angle_hr, sample_intervs, time - init_time,
+                cycle_time, "HR", cmd,data_state);
+    // cout<<"swing finished"<<endl;
+  }else{
+    cout<<"enter pd:"<<time<<";"<<init_time<<";"<<sample_intervs<<endl;
+    for (int i = 0; i < 12; i++) {
+      cmd.joint_cmd[i].torque = 0;
+      cmd.joint_cmd[i].kp = 80;
+      cmd.joint_cmd[i].kd = 0.7;
+    }
+    cmd.joint_cmd[0].position = goal_angle_fl[0];
+    cmd.joint_cmd[1].position = goal_angle_fl[1];
+    cmd.joint_cmd[2].position = goal_angle_fl[2];
+    cmd.joint_cmd[0].velocity = 0;
+    cmd.joint_cmd[1].velocity = 0;
+    cmd.joint_cmd[2].velocity = 0;
+    cmd.joint_cmd[3].position = goal_angle_fr[0];
+    cmd.joint_cmd[4].position = goal_angle_fr[1];
+    cmd.joint_cmd[5].position = goal_angle_fr[2];
+    cmd.joint_cmd[3].velocity = 0;
+    cmd.joint_cmd[4].velocity = 0;
+    cmd.joint_cmd[5].velocity = 0;
+    cmd.joint_cmd[6].position = goal_angle_hl[0];
+    cmd.joint_cmd[7].position = goal_angle_hl[1];
+    cmd.joint_cmd[8].position = goal_angle_hl[2];
+    cmd.joint_cmd[6].velocity = 0;
+    cmd.joint_cmd[7].velocity = 0;
+    cmd.joint_cmd[8].velocity = 0;
+    cmd.joint_cmd[9].position = goal_angle_hr[0];
+    cmd.joint_cmd[10].position = goal_angle_hr[1];
+    cmd.joint_cmd[11].position = goal_angle_hr[2];
+    cmd.joint_cmd[9].velocity = 0;
+    cmd.joint_cmd[10].velocity = 0;
+    cmd.joint_cmd[11].velocity = 0;
+  }
 }

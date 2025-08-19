@@ -20,61 +20,40 @@
 
 using namespace std;
 
-  bool is_message_updated_ = false; ///< Flag to check if message has been updated
-  /**
-   * @brief Callback function to set message update flag
-   * 
-   * @param code The code indicating the type of message received
-   */
-  void OnMessageUpdate(uint32_t code){
-    if(code == 0x0906){
-      is_message_updated_ = true;
-    }
-  }
+MotionExample robot;  
+
 
 int main(int argc, char* argv[]){
-  DRTimer set_timer;
-  double now_time,start_time;
-  RobotCmd robot_joint_cmd;
-  memset(&robot_joint_cmd, 0, sizeof(robot_joint_cmd));
+    const std::string input_filename = "data.txt";    // 输入文件
+    const std::string output_filename = "filtered_data.txt";  // 输出文件
+    const int window_size = 5;  // 滑动窗口大小（建议3-5）
 
-  Sender* send_cmd          = new Sender("192.168.1.120",43893);              ///< Create send thread
-  Receiver* robot_data_recv = new Receiver();                                 ///< Create a receive resolution
-  robot_data_recv->RegisterCallBack(OnMessageUpdate);
-  MotionExample robot_set_up_demo;                                            ///< Demos for testing can be deleted by yourself
-  RobotData *robot_data = &robot_data_recv->GetState();
+    // 存储关节数据：joints[关节序号][帧序号]
+    std::vector<std::vector<double>> joints;
 
-  robot_data_recv->StartWork();
-  set_timer.TimeInit(1);                                                      ///< Timer initialization, input: cycle; Unit: ms
-  send_cmd->RobotStateInit();                                                 ///< Return all joints to zero and gain control
+    // 1. 读取输入文件
+    if (!robot.readJointData(input_filename, joints)) {
+        return 1;
+    }
 
-  start_time = set_timer.GetCurrentTime();                                    ///< Obtain time for algorithm usage
-  robot_set_up_demo.GetInitData(robot_data->joint_data,0.000);                ///< Obtain all joint states once before each stage (action)
-  cout<<"init finished"<<endl;
-  // int sample_interv=100; //采样间隔20ms
-  // ifstream file("../data.txt");
-  // string line;
-  // if(!file.is_open()){
-  //   cerr<<"can't open file"<<endl;
-  //   exit(1);
-  // }
-  int test_count=0;
-  int time_tick = 0;
-  while(1){
-    if (set_timer.TimerInterrupt() == true){                                  ///< Time interrupt flag
-        continue;
+    // 检查是否读取到12个关节
+    if (joints.size() != 12) {
+        std::cerr << "错误：输入文件应包含12个关节数据" << std::endl;
+        return 1;
     }
-    now_time = set_timer.GetIntervalTime(start_time);
-    time_tick++;
-    robot_set_up_demo.GetInitData(robot_data->joint_data,now_time);///执行动作前给出初始关节位置
-    robot_set_up_demo.FixJoint(robot_joint_cmd, {0},*robot_data); ///给前左腿的1,2号关节施加力矩
-    if(is_message_updated_){
-      send_cmd->SendCmd(robot_joint_cmd);  
+
+    // 2. 对每个关节单独进行滑动平均滤波
+    std::vector<std::vector<double>> filtered_joints;
+    filtered_joints.reserve(12);
+    for (const auto& joint_data : joints) {
+        filtered_joints.push_back(robot.movingAverageFilter(joint_data, window_size));
     }
-    if (time_tick>5000){
-      break;
+
+    // 3. 将滤波后的数据写入输出文件
+    if (!robot.writeFilteredData(output_filename, filtered_joints)) {
+        return 1;
     }
-  }
-  send_cmd->ControlGet(ROBOT);
-  return 0;
+
+    std::cout << "滤波完成！结果已保存至 " << output_filename << std::endl;
+    return 0;
 }

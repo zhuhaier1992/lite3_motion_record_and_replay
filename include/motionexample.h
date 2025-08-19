@@ -56,10 +56,13 @@ class MotionExample{
     /// @param data Current joint data
     /// @param time Current timestamp
     void GetInitData(LegData data, double time);
-    Vec3 SplitVec3(const string &s, char delimiter);
-    vector<string> Split(const string &s, char delimiter);
+    // Vec3 SplitVec3(const string &s, char delimiter);
+    // vector<string> Split(const string &s, char delimiter);
     void SaveTraj(LegData data, double time);
-    void Replicate(RobotCmd &cmd, double time, string line, RobotData &data_state);
+    vector<double> movingAverageFilter(const vector<double>& input, int window_size);
+    void Replay(RobotCmd &cmd, double time, string line, RobotData &data_state);
     void FixJoint(RobotCmd &cmd, vector<int> joint_num,RobotData &data_state);
+    bool readJointData(const std::string& filename, std::vector<std::vector<double>>& joints);
+    bool writeFilteredData(const std::string& filename, const std::vector<std::vector<double>>& filtered_joints);
 };
 

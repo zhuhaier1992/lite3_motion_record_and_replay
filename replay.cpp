@@ -97,7 +97,7 @@ int main(int argc, char* argv[]){
       }
       now_time = set_timer.GetIntervalTime(start_time);
       time_tick++;
-      robot_set_up_demo.Replicate(robot_joint_cmd,now_time, line, *robot_data);
+      robot_set_up_demo.Replay(robot_joint_cmd,now_time, line, *robot_data);
       if(time_tick >= sample_interv){//20ms后结束
         break;
       }
