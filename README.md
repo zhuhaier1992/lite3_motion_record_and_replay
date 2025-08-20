@@ -13,16 +13,18 @@ make -j
 
 录制前先删除`data.txt`或将其重命名为一个其他的动作文件。
 ### 代码说明
+动作数据文件格式为每行一帧，12个关节角度，中间以空格隔开。
+
 `src/motionexample.cpp`中加入了：
 - Replay()，主要用于重放动作；
 - SaveTraj()，主要用于录制动作；
-- movingAverageFilter()，平滑滤波，使用readJointData()读取数据，使用writeFilteredData()写入新文件
+- movingAverageFilter()，平滑滤波，使用readJointData()读取数据，对每列即每个关节的数据序列平滑，再使用writeFilteredData()写入新文件
 
 `record.cpp`中先将机器人站起，后提示可以录制，将关节序列录制到`data.txt`10秒后结束。
 
 `replay.cpp`中先将机器人站起，后读取`data.txt`，将每一行的关节角都用Replay()复现。
 
-`smooth.cpp`中设置源数据文件以及输出的数据文件，以及滑动窗口的大小，数字越大越平滑。
+`smooth.cpp`中设置源数据文件以及输出的数据文件，以及滑动窗口的大小，数字越大越平滑，但动作幅度也会越小。
 ### 修改说明
 目前的录制和重复频率都是50Hz，如需调整需修改除了smooth以外的三个代码文件。
 
