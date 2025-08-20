@@ -18,7 +18,7 @@ make -j
 `src/motionexample.cpp`中加入了：
 - Replay()，主要用于重放动作；
 - SaveTraj()，主要用于录制动作；
-- movingAverageFilter()，平滑滤波，使用readJointData()读取数据，对每列即每个关节的数据序列平滑，再使用writeFilteredData()写入新文件
+- movingAverageFilter()，平滑滤波，使用readJointData()读取数据，分别对12列即12个关节的数据序列平滑，再使用writeFilteredData()写入新文件，运行时保存于./build中
 
 `record.cpp`中先将机器人站起，后提示可以录制，将关节序列录制到`data.txt`10秒后结束。
 
